@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+        }
+
+
+
+        .div-container {
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 30%;
+            border: 1px solid;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 0 20px #fff;
+            animation: rgb-shadow 10s infinite;
+        }
+
+        @keyframes rgb-shadow {
+            0% {
+                box-shadow: 0 0 20px #00ff00;
+            }
+
+            25% {
+                box-shadow: 0 0 20px #009600;
+            }
+
+            50% {
+                box-shadow: 0 0 20px #004400;
+            }
+
+            75% {
+                box-shadow: 0 0 20px #009600;
+            }
+
+            100% {
+                box-shadow: 0 0 20px #00ff00;
+            }
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        #submit {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #submit:hover {
+            background-color: #45A049;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="div-container">
+        <h1>EPI Form</h1>
+        <label for="id">ID:</label>
+        <input type="text" id="id">
+        <label for="photo">Photo:</label>
+        <input type="file" id="photo">
+        <button id="submit">Submit</button>
+    </div>
+
+
+
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-storage-compat.js"></script>
+    <script type="module">
+        const firebaseConfig = {
+            apiKey: "AIzaSyAaHy00SmC6GoKCNBowgHNKqlp5JW6OR7E",
+            authDomain: "e-p-i-control-minrip.firebaseapp.com",
+            databaseURL: "https://e-p-i-control-minrip-default-rtdb.firebaseio.com/",
+            projectId: "e-p-i-control-minrip",
+            storageBucket: "e-p-i-control-minrip.appspot.com",
+            messagingSenderId: "530709097383",
+            appId: "1:530709097383:web:9df9b92c9e62143a43e482",
+            measurementId: "G-FPETCKVVG1"
+        }
+
+
+        firebase.initializeApp(firebaseConfig)
+        const db = firebase.firestore()
+        const storage = firebase.storage()
+
+        document.querySelector("#submit").addEventListener("click", async (e) => {
+
+
+            const id = document.querySelector("#id").value
+            const photo = document.querySelector("#photo").files[0]
+            const employee = `employees/${id}`
+            const currentDate = Date.now()
+            const data = new Date(currentDate);
+            const dataFormatada = `${String(data.getDate()).padStart(2, '0')}-${String(data.getMonth() + 1).padStart(2, '0')}-${data.getFullYear()}-${String(data.getHours()).padStart(2, '0')}-${String(data.getMinutes()).padStart(2, '0')}-${String(data.getSeconds()).padStart(2, '0')}`
+            const storageRef = storage.ref()
+            const photoRef = storageRef.child(`${dataFormatada}-ID${id}`)
+            const IDExist = db.collection("employees").doc(id);
+            let exist = false;
+            if (!id) { return }
+            if (!photo) { return }
+            await IDExist.get().then((doc) => {
+                if (doc.exists) {
+                    exist = true;
+                } else {
+                    console.log("No such document!");
+                }
+            }).catch((error) => {
+                console.log("Error getting document:", error);
+            })
+            if (!exist) {
+                alert("O ID Inserido não existe, porfavor tente um ID existente")
+                document.querySelector("#id").value = ''
+                document.querySelector("#photo").value = ''
+                return
+            }
+
+            await photoRef.put(photo).then((snapshot) => {
+                console.log('Uploaded a blob or file!')
+            })
+
+            const url = await photoRef.getDownloadURL()
+
+
+            const docRef = db.collection("historyRegisters").doc()
+            await docRef.set({
+                date: data,
+                employee: db.collection("employees").doc(id),
+                id: id,
+                photo: url
+            })
+
+            document.querySelector("#id").value = ''
+            document.querySelector("#photo").value = ''
+
+        })
+    </script>
+</body>
+
+</html>
